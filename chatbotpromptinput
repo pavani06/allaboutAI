@@ -1,0 +1,56 @@
+import os
+import requests
+import bs4
+from bs4 import BeautifulSoup
+from openai import OpenAI
+
+# Inicialização do cliente OpenAI
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+def get_text_from_url(url):
+    """Extrai o texto de uma página da web."""
+    response = requests.get(url)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        return ' '.join([p.text for p in soup.find_all('p')])
+    else:
+        return "Não foi possível obter conteúdo da página."
+
+def generate_summary(text):
+    model_engine = "gpt-4" # Escolha o modelo desejado
+
+    """Gera um resumo do texto fornecido."""
+    prompt = f"Resumo:\n{text}"
+    response = client.chat.completions.create(
+        model=model_engine,
+        prompt=prompt,
+        max_tokens=450
+    )
+    return response.choices[0].text.strip()
+
+def create_tweet(summary):
+    """Cria um tweet com base no resumo, incluindo hashtags."""
+    hashtags = "#AI #Technology #Innovation"
+    tweet = f"{summary} {hashtags}"
+    return tweet[:280]
+
+def save_to_file(filename, summary, tweet):
+    """Salva o resumo e o tweet em um arquivo de texto."""
+    with open(filename, 'w') as file:
+        file.write("Resumo:\n")
+        file.write(summary)
+        file.write("\n\nTweet:\n")
+        file.write(tweet)
+
+def main():
+    url = input("Digite a URL da página para extrair o texto: ")
+    text = get_text_from_url(url)
+
+    summary = generate_summary(text)
+    tweet = create_tweet(summary)
+
+    save_to_file("output.txt", summary, tweet)
+    print("Resumo e tweet salvos em output.txt")
+
+if __name__ == "__main__":
+    main()
